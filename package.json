@@ -1,0 +1,17 @@
+{
+	"name": "@leeboyin/sku-calculator",
+	"description": "Calculate valid sku, amount and price by selected specs.",
+	"version": "1.0.2",
+	"dependencies": {
+		"lodash": "^4.17.11"
+	},
+	"license": "MIT",
+	"repository": "leeboyin/sku-calculator",
+	"main": "index.js",
+	"keywords": [
+		"sku",
+		"spec",
+		"calculator",
+		"combination"
+	]
+}
