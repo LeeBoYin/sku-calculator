@@ -1,7 +1,7 @@
 {
 	"name": "@leeboyin/sku-calculator",
 	"description": "Calculate valid sku, amount and price by selected specs.",
-	"version": "1.0.2",
+	"version": "2.0.0",
 	"dependencies": {
 		"lodash": "^4.17.11"
 	},
