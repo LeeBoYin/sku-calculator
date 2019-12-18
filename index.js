@@ -19,6 +19,17 @@ module.exports = function(options) {
 		cheapestSkusIdx: [],
 	};
 
+	const statisticsOfSpecDefault = {
+		selectable: false,
+		maxAmount: hasAmount ? 0 : null,
+		insufficient: hasAmount ? true : null,
+		lowestPrice: null,
+		lowestPricePrimary: null,
+		highestPrice: null,
+		highestPricePrimary: null,
+		cheapestSkusIdx: [],
+	};
+
 	const statisticsOfSpec = {};
 	_.forEach(skus, (sku, skuIdx) => {
 		sku.isPrimary = checkIsSkuPrimary(sku);
@@ -30,16 +41,7 @@ module.exports = function(options) {
 				statisticsOfSpec[specName] = {};
 			}
 			if(_.isNil(statisticsOfSpec[specName][specValue])) {
-				statisticsOfSpec[specName][specValue] = {
-					selectable: false,
-					maxAmount: hasAmount ? 0 : null,
-					insufficient: hasAmount ? true : null,
-					lowestPrice: null,
-					lowestPricePrimary: null,
-					highestPrice: null,
-					highestPricePrimary: null,
-					cheapestSkusIdx: [],
-				};
+				statisticsOfSpec[specName][specValue] = _.clone(statisticsOfSpecDefault);
 			}
 
 			const statisticsOfThisSpec = statisticsOfSpec[specName][specValue];
@@ -130,16 +132,7 @@ module.exports = function(options) {
 			_.forEach(specs, (values, specName) => {
 				selectionStatus[selectionIdx][specName] = {};
 				_.forEach(values, (specValue) => {
-					selectionStatus[selectionIdx][specName][specValue] = {
-						selectable: false,
-						maxAmount: hasAmount ? 0 : null,
-						insufficient: hasAmount ? true : null,
-						lowestPrice: null,
-						lowestPricePrimary: null,
-						highestPrice: null,
-						highestPricePrimary: null,
-						cheapestSkusIdx: [],
-					};
+					selectionStatus[selectionIdx][specName][specValue] = _.clone(statisticsOfSpecDefault);
 				});
 			});
 		});
@@ -264,7 +257,7 @@ module.exports = function(options) {
 			specStatus[specName] = {};
 			_.forEach(values, (specValue) => {
 				// reset sku status
-				const statusOfThisSpec = specStatus[specName][specValue] = _.clone(statisticsOfSpec[specName][specValue]);
+				const statusOfThisSpec = specStatus[specName][specValue] = _.clone(_.get(statisticsOfSpec, [specName, specValue], statisticsOfSpecDefault));
 
 				if(_.isEmpty(selectionStatus)) {
 					return;
