@@ -1,13 +1,16 @@
-module.exports = function(options) {
-	const specs = options.specs || {};
-	const skus = options.skus || [];
-	const primarySpecs = options.primarySpecs || null;
-	const hasAmount = options.hasAmount || false;
-	const multiSpecs = options.multiSpecs || [];
+module.exports = function(options = {}) {
+	const {
+		specs = {},
+		skus = [],
+		primarySpecs = null,
+		hasAmount = false,
+		multiSpecs = [],
+	} = options;
 
 	let selectionArray = [];
 	const specStatus = {};
 	const statistics = {};
+	const selectionSpecStatus = [];
 
 	const statisticsOfAll = {
 		maxAmount: hasAmount ? 0 : null,
@@ -25,8 +28,10 @@ module.exports = function(options) {
 		insufficient: hasAmount ? true : null,
 		lowestPrice: null,
 		lowestPricePrimary: null,
+		lowestPriceTotal: null,
 		highestPrice: null,
 		highestPricePrimary: null,
+		highestPriceTotal: null,
 		cheapestSkusIdx: [],
 	};
 
@@ -41,7 +46,7 @@ module.exports = function(options) {
 				statisticsOfSpec[specName] = {};
 			}
 			if(_.isNil(statisticsOfSpec[specName][specValue])) {
-				statisticsOfSpec[specName][specValue] = _.clone(statisticsOfSpecDefault);
+				statisticsOfSpec[specName][specValue] = _.cloneDeep(statisticsOfSpecDefault);
 			}
 
 			const statisticsOfThisSpec = statisticsOfSpec[specName][specValue];
@@ -106,8 +111,10 @@ module.exports = function(options) {
 		maxAmount: null,
 		lowestPrice: null,
 		lowestPricePrimary: null,
+		lowestPriceTotal: null,
 		highestPrice: null,
 		highestPricePrimary: null,
+		highestPriceTotal: null,
 		determinedAmount: null,
 		validSkusIdx: statisticsOfAll.validSkusIdx,
 		cheapestSkusIdx: statisticsOfAll.cheapestSkusIdx,
@@ -121,18 +128,18 @@ module.exports = function(options) {
 
 	function refresh() {
 		// 每個 selection 建立一套 spec status 的統計結果
-		const selectionStatus = {};
+		selectionSpecStatus.splice(0);
 		// 每個 selection 建立一套 valid sku idx
 		const validSkusIdx = {};
 		// 記錄完全符合 selection 的 sku
 		const determinedAmount = {};
 		_.forEach(selectionArray, (selection, selectionIdx) => {
-			selectionStatus[selectionIdx] = {};
+			selectionSpecStatus[selectionIdx] = {};
 			validSkusIdx[selectionIdx] = [];
 			_.forEach(specs, (values, specName) => {
-				selectionStatus[selectionIdx][specName] = {};
+				selectionSpecStatus[selectionIdx][specName] = {};
 				_.forEach(values, (specValue) => {
-					selectionStatus[selectionIdx][specName][specValue] = _.clone(statisticsOfSpecDefault);
+					selectionSpecStatus[selectionIdx][specName][specValue] = _.cloneDeep(statisticsOfSpecDefault);
 				});
 			});
 		});
@@ -198,7 +205,7 @@ module.exports = function(options) {
 					// 只要有一個 spec 被排除後，其他 spec 符合 selection 條件，就算是這個 sku 可以被選取
 					isSkuValidByThisSelection = true;
 
-					const statusOfThisSelection = selectionStatus[selectionIdx][specName][specValue];
+					const statusOfThisSelection = selectionSpecStatus[selectionIdx][specName][specValue];
 					statusOfThisSelection.selectable = true;
 
 					// is insufficient
@@ -259,12 +266,12 @@ module.exports = function(options) {
 				// reset sku status
 				const statusOfThisSpec = specStatus[specName][specValue] = _.clone(_.get(statisticsOfSpec, [specName, specValue], statisticsOfSpecDefault));
 
-				if(_.isEmpty(selectionStatus)) {
+				if(_.isEmpty(selectionSpecStatus)) {
 					return;
 				}
 
 				// selectable: spec is selectable if all spec is valid for all selection conditions
-				statusOfThisSpec.selectable = _.every(selectionStatus, (status) => {
+				statusOfThisSpec.selectable = _.every(selectionSpecStatus, (status) => {
 					return status[specName][specValue].selectable;
 				});
 
@@ -280,38 +287,44 @@ module.exports = function(options) {
 
 				if(hasAmount) {
 					// is insufficient
-					statusOfThisSpec.insufficient = _.some(selectionStatus, (status) => {
+					statusOfThisSpec.insufficient = _.some(selectionSpecStatus, (status) => {
 						return status[specName][specValue].insufficient;
 					});
 
 					// max amount
-					statusOfThisSpec.maxAmount = _.get(_.minBy(_.values(selectionStatus), (status) => {
+					statusOfThisSpec.maxAmount = _.get(_.minBy(selectionSpecStatus, (status) => {
 						return status[specName][specValue].maxAmount;
 					}), [specName, specValue, 'maxAmount'], 0);
 				}
 
 				// lowest price
-				statusOfThisSpec.lowestPrice = _.min(_.map(selectionStatus, (status) => {
+				const lowestPrices = _.map(selectionSpecStatus, (status) => {
 					return status[specName][specValue].lowestPrice;
-				})) || statusOfThisSpec.lowestPrice;
+				});
+				statusOfThisSpec.lowestPrice = _.min(lowestPrices) || statusOfThisSpec.lowestPrice;
+				statusOfThisSpec.lowestPriceTotal = _.sum(lowestPrices) || statusOfThisSpec.lowestPriceTotal;
 
 				// highest price
-				statusOfThisSpec.highestPrice = _.max(_.map(selectionStatus, (status) => {
+				const highestPrices = _.map(selectionSpecStatus, (status) => {
 					return status[specName][specValue].highestPrice;
-				})) || statusOfThisSpec.highestPrice;
+				});
+				statusOfThisSpec.highestPrice = _.max(highestPrices) || statusOfThisSpec.highestPrice;
+				statusOfThisSpec.highestPriceTotal = _.sum(highestPrices) || statusOfThisSpec.highestPriceTotal;
 
 				// lowest price primary
-				statusOfThisSpec.lowestPricePrimary = _.min(_.map(selectionStatus, (status) => {
+				const lowestPricesPrimary = _.map(selectionSpecStatus, (status) => {
 					return status[specName][specValue].lowestPricePrimary;
-				})) || statusOfThisSpec.lowestPricePrimary;
+				});
+				statusOfThisSpec.lowestPricePrimary = _.min(lowestPricesPrimary) || statusOfThisSpec.lowestPricePrimary;
 
 				// highest price primary
-				statusOfThisSpec.highestPricePrimary = _.max(_.map(selectionStatus, (status) => {
+				const highestPricesPrimary = _.map(selectionSpecStatus, (status) => {
 					return status[specName][specValue].highestPricePrimary;
-				})) || statusOfThisSpec.highestPricePrimary;
+				});
+				statusOfThisSpec.highestPricePrimary = _.max(highestPricesPrimary) || statusOfThisSpec.highestPricePrimary;
 
 				// cheapest skus idx
-				statusOfThisSpec.cheapestSkusIdx = _.union(..._.map(_.filter(_.values(selectionStatus), (status) => {
+				statusOfThisSpec.cheapestSkusIdx = _.union(..._.map(_.filter(selectionSpecStatus, (status) => {
 					return status[specName][specValue].lowestPrice === statusOfThisSpec.lowestPrice;
 				}), (status) => {
 					return _.get(status, [specName, specValue, 'cheapestSkusIdx'], []);
@@ -355,12 +368,14 @@ module.exports = function(options) {
 					}
 				}
 				statistics.lowestPrice = _.min([lowestPriceOfSelection, statistics.lowestPrice]);
+				statistics.lowestPriceTotal += lowestPriceOfSelection;
 
 				// highestPrice: 一個 selection 的 selection specs 取 min，每個 selection 之中取 max
 				const highestPriceOfSelection = _.min([statisticsOfAll.highestPrice, ..._.map(selection.spec, (specValue, specName) => {
 					return _.get(specStatus, [specName, specValue, 'highestPrice'], null);
 				})]);
 				statistics.highestPrice = _.max([highestPriceOfSelection, statistics.highestPrice]);
+				statistics.highestPriceTotal += highestPriceOfSelection;
 
 				const isSelectionPrimary = primarySpecs && _.every(selection.spec, (specValue, specName) => {
 					return _.isNil(specValue) || _.isNil(primarySpecs[specName]) || primarySpecs[specName] === specValue;
@@ -390,10 +405,11 @@ module.exports = function(options) {
 	refresh();
 
 	// public properties
-	this.setSelectionArray = function(_selectionArray) {
+	this.setSelectionArray = (_selectionArray) => {
 		selectionArray = _selectionArray;
 		refresh();
 	};
 	this.specStatus = specStatus;
 	this.statistics = statistics;
+	this.selectionSpecStatus = selectionSpecStatus;
 };
