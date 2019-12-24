@@ -1,7 +1,7 @@
 {
 	"name": "@leeboyin/sku-calculator",
-	"description": "Calculate valid sku, amount and price by selected specs.",
-	"version": "1.0.5",
+	"description": "Calculate valid sku, amount, price and detail status of each spec according to selected specs. A front-end JS algorithm for E-commerce product websites.",
+	"version": "1.0.6",
 	"dependencies": {
 		"lodash": "^4.17.11"
 	},
@@ -10,8 +10,23 @@
 	"main": "index.js",
 	"keywords": [
 		"sku",
+		"spu",
 		"spec",
 		"calculator",
-		"combination"
+		"combination",
+		"e-commerce",
+		"selection",
+		"shop",
+		"manage",
+		"sell",
+		"product",
+		"stock",
+		"inventory",
+		"price",
+		"javascript",
+		"js",
+		"front-end",
+		"option",
+		"stock keeping unit"
 	]
 }
